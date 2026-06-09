@@ -866,7 +866,7 @@ function api(action, params) {
       var s = document.getElementById(cbName);
       if (s) s.parentNode.removeChild(s);
       reject(new Error('Timeout de conexión'));
-    }, 20000);
+    }, 60000);
 
     window[cbName] = function(data) {
       clearTimeout(timeout);
@@ -1072,16 +1072,22 @@ async function abrirDetalle(numCredito, identidad, nombreCliente) {
   document.getElementById('historialContent').innerHTML = '<div class="loadingRow"><span class="spinner" style="border-color:rgba(67,87,130,0.3);border-top-color:var(--navy)"></span> Cargando historial...</div>';
   document.getElementById('avalesContent').innerHTML    = '<div class="loadingRow"><span class="spinner" style="border-color:rgba(67,87,130,0.3);border-top-color:var(--navy)"></span> Cargando avales...</div>';
 
-  // Cargar en paralelo
-  Promise.all([
-    api('detalle',       { numCredito }),
-    api('historialCred', { identidad }),
-    api('avales',        { numCredito }),
-  ]).then(([rDet, rHist, rAv]) => {
+  // Cargar solo ficha al abrir — historial y avales se cargan al hacer clic
+  api('detalle', { numCredito }).then(function(rDet) {
     renderFicha(rDet);
-    renderHistorial(rHist);
-    renderAvales(rAv, numCredito);
+  }).catch(function(e) {
+    document.getElementById('fichaContent').innerHTML = '<div class="emptyRow">Error al cargar ficha</div>';
   });
+
+  // Marcar historial y avales como pendientes de carga
+  document.getElementById('historialContent').innerHTML = '<div class="emptyRow">Haga clic en esta pestaña para cargar el historial</div>';
+  document.getElementById('avalesContent').innerHTML = '<div class="emptyRow">Haga clic en esta pestaña para cargar los avales</div>';
+  
+  // Guardar datos para carga lazy
+  window._currentIdentidad  = identidad;
+  window._currentNumCredito = numCredito;
+  window._historialCargado  = false;
+  window._avalesCargado     = false;
 }
 
 document.getElementById('btnClose').addEventListener('click', () => {
@@ -1100,6 +1106,29 @@ document.querySelectorAll('.tabBtn').forEach(btn => {
     document.querySelectorAll('.tabPanel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+    // Carga lazy — solo cuando se hace clic por primera vez
+    if (btn.dataset.tab === 'historial' && !window._historialCargado) {
+      window._historialCargado = true;
+      document.getElementById('historialContent').innerHTML =
+        '<div class="loadingRow"><span class="spinner" style="border-color:rgba(67,87,130,0.3);border-top-color:var(--navy)"></span> Cargando historial...</div>';
+      api('historialCred', { identidad: window._currentIdentidad })
+        .then(function(r) { renderHistorial(r); })
+        .catch(function(e) {
+          document.getElementById('historialContent').innerHTML = '<div class="emptyRow">Error al cargar historial</div>';
+        });
+    }
+
+    if (btn.dataset.tab === 'avales' && !window._avalesCargado) {
+      window._avalesCargado = true;
+      document.getElementById('avalesContent').innerHTML =
+        '<div class="loadingRow"><span class="spinner" style="border-color:rgba(67,87,130,0.3);border-top-color:var(--navy)"></span> Cargando avales...</div>';
+      api('avales', { numCredito: window._currentNumCredito })
+        .then(function(r) { renderAvales(r, window._currentNumCredito); })
+        .catch(function(e) {
+          document.getElementById('avalesContent').innerHTML = '<div class="emptyRow">Error al cargar avales</div>';
+        });
+    }
   });
 });
 

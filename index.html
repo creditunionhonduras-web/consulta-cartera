@@ -1156,6 +1156,15 @@ function renderFicha(r) {
           <span class="fichaLabel">Saldo actual</span>
           <span class="fichaValue big">L. ${fmtNum(d.saldoActual)}</span>
         </div>
+        <div class="fichaRow">
+          <span class="fichaLabel">Cuota mensual</span>
+          <span class="fichaValue" style="font-weight:700;color:var(--navy);">L. ${fmtNum(d.cuotaTotal)}</span>
+        </div>
+        <div class="fichaRow" style="font-size:11px;color:var(--muted);justify-content:flex-end;gap:8px;">
+          <span>Cap: L.${fmtNum(d.cuotaCapital)}</span>
+          <span>Int: L.${fmtNum(d.cuotaInteres)}</span>
+          <span>Otros: L.${fmtNum(d.cuotaOtros)}</span>
+        </div>
         ${d.moraGenerada > 0 ? `
         <div class="fichaRow">
           <span class="fichaLabel">Mora generada</span>
@@ -1230,8 +1239,12 @@ function renderFicha(r) {
           <span class="fichaValue">${d.fechaVence || '—'}</span>
         </div>
         <div class="fichaRow">
-          <span class="fichaLabel">Último pago</span>
+          <span class="fichaLabel">Último pago recibido</span>
           <span class="fichaValue">${d.ultPago || '—'}</span>
+        </div>
+        <div class="fichaRow">
+          <span class="fichaLabel">Última cuota completa</span>
+          <span class="fichaValue">${d.ultCuotaPag || '—'}</span>
         </div>
         <div class="fichaRow">
           <span class="fichaLabel">Asesor</span>

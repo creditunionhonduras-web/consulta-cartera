@@ -1123,7 +1123,7 @@ document.querySelectorAll('.tabBtn').forEach(btn => {
       window._avalesCargado = true;
       document.getElementById('avalesContent').innerHTML =
         '<div class="loadingRow"><span class="spinner" style="border-color:rgba(67,87,130,0.3);border-top-color:var(--navy)"></span> Cargando avales...</div>';
-      api('avales', { numCredito: window._currentNumCredito })
+      api('avales', { numCredito: window._currentNumCredito, identidad: window._currentIdentidad })
         .then(function(r) { renderAvales(r, window._currentNumCredito); })
         .catch(function(e) {
           document.getElementById('avalesContent').innerHTML = '<div class="emptyRow">Error al cargar avales</div>';
@@ -1291,58 +1291,30 @@ function renderHistorial(r) {
 // RENDER AVALES
 // ══════════════════════════════════════════════════════
 function renderAvales(r, numCredito) {
-  const el = document.getElementById('avalesContent');
-  mostrandoFormAval = false;
+  var el = document.getElementById('avalesContent');
 
-  const avalesHtml = (!r.ok || !r.data.length)
-    ? '<div class="emptyRow">Sin avales registrados para este crédito</div>'
-    : r.data.map(a => `
-        <div class="avalCard">
-          <div class="avalNombre">${escHtml(a.nombre)}</div>
-          <div class="avalMeta">
-            <span>🪪 ${a.identidad || '—'}</span>
-            <span>📞 ${a.telefono || '—'}</span>
-            <span>📍 ${a.direccion || '—'}</span>
-            <span style="margin-left:auto;color:var(--muted)">Reg. ${a.fechaReg}</span>
-          </div>
-        </div>`).join('');
+  var avalesHtml = '';
+  if (!r.ok || !r.data || !r.data.length) {
+    avalesHtml = '<div class="emptyRow">Sin avales registrados para este crédito</div>';
+  } else {
+    avalesHtml = r.data.map(function(a) {
+      return '<div class="avalCard">'
+        + '<div class="avalNombre">' + escHtml(a.nombre) + '</div>'
+        + '<div class="avalMeta">'
+        + '<span>🪪 ' + (a.identidad || '—') + '</span>'
+        + '<span>📞 ' + (a.telefono  || '—') + '</span>'
+        + '<span>📍 ' + (a.direccion || '—') + '</span>'
+        + (a.tipo ? '<span style="margin-left:auto;background:#eef1f9;color:var(--blue);padding:2px 8px;border-radius:12px;font-size:11px;">' + a.tipo + '</span>' : '')
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
 
-  el.innerHTML = `
-    <div class="avalesHeader">
-      <h3>Avales del Crédito #${numCredito}</h3>
-      <button class="btnAdd" onclick="toggleFormAval()">+ Agregar Aval</button>
-    </div>
-    ${avalesHtml}
-    <div id="formAvalContainer" style="display:none">
-      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-      <h3 style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:14px">Nuevo Aval</h3>
-      <div class="formAval">
-        <div class="formRow">
-          <div class="field">
-            <label>Nombre completo *</label>
-            <input type="text" id="avalNombre" placeholder="Nombre del aval">
-          </div>
-          <div class="field">
-            <label>Número de identidad *</label>
-            <input type="text" id="avalIdentidad" placeholder="0000-0000-00000">
-          </div>
-        </div>
-        <div class="formRow">
-          <div class="field">
-            <label>Teléfono *</label>
-            <input type="text" id="avalTelefono" placeholder="0000-0000">
-          </div>
-          <div class="field">
-            <label>Dirección</label>
-            <input type="text" id="avalDireccion" placeholder="Colonia, calle...">
-          </div>
-        </div>
-        <div class="formActions">
-          <button class="btnSave" onclick="guardarAval('${numCredito}')">Guardar Aval</button>
-          <button class="btnCancel" onclick="toggleFormAval()">Cancelar</button>
-        </div>
-      </div>
-    </div>`;
+  el.innerHTML = '<div class="avalesHeader">'
+    + '<h3>Avales del Crédito #' + numCredito + '</h3>'
+    + '<span style="font-size:12px;color:var(--muted);">' + (r.data ? r.data.length : 0) + ' aval(es)</span>'
+    + '</div>'
+    + avalesHtml;
 }
 
 function toggleFormAval() {

@@ -852,19 +852,38 @@ let mostrandoFormAval = false;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxw5axQi4Jctq589IfJ7_oL-SRQLxwC_xsVmHOgvqzGDhMEJNn7BiWSKtmTrrgHMoVn/exec';
 
 // ══════════════════════════════════════════════════════
-// API — fetch GET (evita CORS preflight)
-// Apps Script acepta GET con parámetros query string
+// API — JSONP (resuelve CORS con Apps Script)
 // ══════════════════════════════════════════════════════
-async function api(action, params = {}) {
-  const qs = new URLSearchParams({ action, ...params }).toString();
-  const url = SCRIPT_URL + '?' + qs;
-  const res = await fetch(url, { redirect: 'follow' });
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch(e) {
-    throw new Error('Respuesta inválida: ' + text.substring(0, 100));
-  }
+let _jsonpCounter = 0;
+
+function api(action, params = {}) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + (++_jsonpCounter);
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      reject(new Error('Timeout de conexión'));
+    }, 15000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const script = document.getElementById(cbName);
+      if (script) script.remove();
+      resolve(data);
+    };
+
+    const qs = new URLSearchParams({ action, callback: cbName, ...params }).toString();
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = SCRIPT_URL + '?' + qs;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Error de conexión'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 // ══════════════════════════════════════════════════════

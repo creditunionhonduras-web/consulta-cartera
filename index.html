@@ -876,7 +876,7 @@ function api(action, params) {
       resolve(data);
     };
 
-    // Construir URL manualmente para mayor compatibilidad
+    // URL con parámetro para forzar tipo correcto
     var url = SCRIPT_URL + '?callback=' + cbName + '&action=' + encodeURIComponent(action);
     for (var key in params) {
       if (params.hasOwnProperty(key)) {
@@ -887,11 +887,22 @@ function api(action, params) {
     var script = document.createElement('script');
     script.id = cbName;
     script.type = 'text/javascript';
+    script.crossOrigin = 'anonymous';
     script.src = url;
+    script.onload = function() {
+      // Si cargo pero no llamo el callback en 3s, es error
+      setTimeout(function() {
+        if (window[cbName]) {
+          clearTimeout(timeout);
+          delete window[cbName];
+          reject(new Error('Error de conexión'));
+        }
+      }, 3000);
+    };
     script.onerror = function() {
       clearTimeout(timeout);
       delete window[cbName];
-      script.parentNode.removeChild(script);
+      if (script.parentNode) script.parentNode.removeChild(script);
       reject(new Error('Error de conexión'));
     };
     document.getElementsByTagName('head')[0].appendChild(script);
